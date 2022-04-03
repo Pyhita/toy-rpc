@@ -11,6 +11,8 @@
     <modules>
         <module>toy-rpc-core</module>
         <module>toy-rpc-interface</module>
+        <module>toy-rpc-consumer</module>
+        <module>toy-rpc-provider</module>
     </modules>
 
 

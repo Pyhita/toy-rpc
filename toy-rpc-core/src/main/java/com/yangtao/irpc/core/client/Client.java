@@ -69,7 +69,10 @@ public class Client {
         clientConfig.setPort(9090);
         clientConfig.setServerAddr("localhost");
         client.setClientConfig(clientConfig);
+        // Rpc Reference里面封装了一个代理工厂，
+        // 可以通过get方法拿到对应的代理对象
         RpcReference rpcReference = client.startClientApplication();
+        // 拿到了代理对象
         DataService dataService = rpcReference.get(DataService.class);
         for(int i=0;i<100;i++){
             String result = dataService.sendData("test");

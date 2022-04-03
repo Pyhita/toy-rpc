@@ -3,7 +3,6 @@ package com.yangtao.irpc.core.server;
 import com.alibaba.fastjson.JSON;
 import com.yangtao.irpc.core.common.RpcInvocation;
 import com.yangtao.irpc.core.common.RpcProtocol;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -26,6 +25,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws InvocationTargetException, IllegalAccessException {
         RpcProtocol rpcProtocol = (RpcProtocol) msg;
         String json = new String(rpcProtocol.getContent(), 0, rpcProtocol.getContentLength());
+        // 将字节数组反序列化
         RpcInvocation rpcInvocation = JSON.parseObject(json, RpcInvocation.class);
         Object aimObject = PROVIDER_CLASS_MAP.get(rpcInvocation.getTargetServiceName());
         Method[] methods = aimObject.getClass().getDeclaredMethods();
