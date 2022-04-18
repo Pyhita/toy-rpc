@@ -1,10 +1,18 @@
 package com.yangtao.irpc.core.registy.zookeeper;
 
+import com.yangtao.irpc.core.common.event.IRpcEvent;
+import com.yangtao.irpc.core.common.event.IRpcListenerLoader;
+import com.yangtao.irpc.core.common.event.IRpcUpdateEvent;
+import com.yangtao.irpc.core.common.event.data.URLChangeWrapper;
 import com.yangtao.irpc.core.registy.RegistryService;
 import com.yangtao.irpc.core.registy.URL;
 import com.yangtao.irpc.interfaces.DataService;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @Author: pyhita
@@ -37,9 +45,21 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
         return nodeDataList;
     }
 
+    @Override
+    public Map<String, String> getServiceWeightMap(String serviceName) {
+        List<String> nodeDataList = this.zkClient.getChildrenData(ROOT + "/" + serviceName + "/provider");
+        Map<String, String> result = new HashMap<>();
+        for (String ipAndHost : nodeDataList) {
+            String childData = this.zkClient.getNodeData(ROOT + "/" + serviceName + "/provider/" + ipAndHost);
+            result.put(ipAndHost, childData);
+        }
+        return result;
+    }
+
 
     @Override
     public void register(URL url) {
+        // 初始化根节点
         if (!this.zkClient.existNode(ROOT)) {
             zkClient.createPersistentData(ROOT, "");
         }
@@ -50,6 +70,7 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
             zkClient.deleteNode(getProviderPath(url));
             zkClient.createTemporaryData(getProviderPath(url), urlStr);
         }
+        // 加入到缓存中
         super.register(url);
     }
 
@@ -116,4 +137,6 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
         System.out.println(urls);
         Thread.sleep(2000000);
     }
+
+
 }
