@@ -1,7 +1,9 @@
 package com.yangtao.irpc.core.registy.zookeeper;
 
+import com.alibaba.fastjson.JSON;
 import com.yangtao.irpc.core.common.event.IRpcEvent;
 import com.yangtao.irpc.core.common.event.IRpcListenerLoader;
+import com.yangtao.irpc.core.common.event.IRpcNodeChangeEvent;
 import com.yangtao.irpc.core.common.event.IRpcUpdateEvent;
 import com.yangtao.irpc.core.common.event.data.URLChangeWrapper;
 import com.yangtao.irpc.core.registy.RegistryService;
@@ -98,9 +100,38 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
     @Override
     public void doAfterSubscribe(URL url) {
         //监听是否有新的服务注册
-        String newServerNodePath = ROOT + "/" + url.getServiceName() + "/provider";
+        String servicePath = url.getParameters().get("servicePath");
+        String newServerNodePath = ROOT + "/" + servicePath;
         watchChildNodeData(newServerNodePath);
+        String providerIpStrJson = url.getParameters().get("providerIps");
+        List<String> providerIpList = JSON.parseObject(providerIpStrJson, List.class);
+        for (String providerIp : providerIpList) {
+            this.watchNodeDataChange(ROOT + "/" + servicePath + "/" + providerIp);
+        }
     }
+
+    /**
+     * 订阅服务节点内部的数据变化
+     *
+     * @param newServerNodePath
+     */
+    public void watchNodeDataChange(String newServerNodePath) {
+        zkClient.watchNodeData(newServerNodePath, new Watcher() {
+
+            @Override
+            public void process(WatchedEvent watchedEvent) {
+                String path = watchedEvent.getPath();
+                String nodeData = zkClient.getNodeData(path);
+                nodeData = nodeData.replace(";","/");
+                ProviderNodeInfo providerNodeInfo = URL.buildURLFromUrlStr(nodeData);
+                IRpcEvent iRpcEvent = new IRpcNodeChangeEvent(providerNodeInfo);
+                IRpcListenerLoader.sendEvent(iRpcEvent);
+                watchNodeDataChange(newServerNodePath);
+            }
+        });
+    }
+
+
 
     public void watchChildNodeData(String newServerNodePath){
         zkClient.watchChildNodeData(newServerNodePath, new Watcher() {

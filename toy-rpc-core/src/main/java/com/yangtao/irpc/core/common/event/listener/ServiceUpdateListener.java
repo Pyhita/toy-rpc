@@ -49,6 +49,7 @@ public class ServiceUpdateListener implements IRpcListener<IRpcUpdateEvent> {
                     finalUrl.add(oldServerAddress);
                 }
             }
+
             //此时老的url已经被移除了，开始检查是否有新的url
             List<ChannelFutureWrapper> newChannelFutureWrapper = new ArrayList<>();
             for (String newProviderUrl : matchProviderUrl) {
@@ -69,8 +70,9 @@ public class ServiceUpdateListener implements IRpcListener<IRpcUpdateEvent> {
                     }
                 }
             }
+
             finalChannelFutureWrappers.addAll(newChannelFutureWrapper);
-            //最终更新服务在这里
+            //最终更新服务在这里，更新缓存信息
             CONNECT_MAP.put(urlChangeWrapper.getServiceName(),finalChannelFutureWrappers);
         }
     }

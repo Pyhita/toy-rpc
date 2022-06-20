@@ -2,6 +2,7 @@ package com.yangtao.irpc.core.client;
 
 import com.yangtao.irpc.core.common.ChannelFutureWrapper;
 import com.yangtao.irpc.core.common.utils.CommonUtils;
+import com.yangtao.irpc.core.router.Selector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 
@@ -10,8 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import static com.yangtao.irpc.core.common.cache.CommonClientCache.CONNECT_MAP;
-import static com.yangtao.irpc.core.common.cache.CommonClientCache.SERVER_ADDRESS;
+import static com.yangtao.irpc.core.common.cache.CommonClientCache.*;
 
 /**
  * 职责： 当注册中心的节点新增或者移除或者权重变化的时候，这个类主要负责对内存中的url做变更
@@ -28,6 +28,7 @@ public class ConnectionHandler {
      * 专门用于负责和服务端构建连接通信
      */
     private static Bootstrap bootstrap;
+
 
     public static void setBootstrap(Bootstrap bootstrap) {
         ConnectionHandler.bootstrap = bootstrap;
@@ -53,17 +54,24 @@ public class ConnectionHandler {
         Integer port = Integer.parseInt(providerAddress[1]);
         //到底这个channelFuture里面是什么
         ChannelFuture channelFuture = bootstrap.connect(ip, port).sync();
+        String providerURLInfo = URL_MAP.get(providerServiceName).get(providerIp);
+        System.out.println(providerURLInfo);
         ChannelFutureWrapper channelFutureWrapper = new ChannelFutureWrapper();
         channelFutureWrapper.setChannelFuture(channelFuture);
         channelFutureWrapper.setHost(ip);
         channelFutureWrapper.setPort(port);
+        channelFutureWrapper.setWeight(Integer.valueOf(providerURLInfo.substring(providerURLInfo.lastIndexOf(";")+1)));
         SERVER_ADDRESS.add(providerIp);
         List<ChannelFutureWrapper> channelFutureWrappers = CONNECT_MAP.get(providerServiceName);
         if (CommonUtils.isEmptyList(channelFutureWrappers)) {
             channelFutureWrappers = new ArrayList<>();
         }
         channelFutureWrappers.add(channelFutureWrapper);
+        //例如com.sise.test.UserService会被放入到一个Map集合中，key是服务的名字，value是对应的channel通道的List集合
         CONNECT_MAP.put(providerServiceName, channelFutureWrappers);
+        Selector selector = new Selector();
+        selector.setProviderServiceName(providerServiceName);
+        IROUTER.refreshRouterArr(selector);
     }
 
     /**
@@ -109,7 +117,9 @@ public class ConnectionHandler {
         if (CommonUtils.isEmptyList(channelFutureWrappers)) {
             throw new RuntimeException("no provider exist for " + providerServiceName);
         }
-        ChannelFuture channelFuture = channelFutureWrappers.get(new Random().nextInt(channelFutureWrappers.size())).getChannelFuture();
+        Selector selector = new Selector();
+        selector.setProviderServiceName(providerServiceName);
+        ChannelFuture channelFuture = IROUTER.select(selector).getChannelFuture();
         return channelFuture;
     }
 

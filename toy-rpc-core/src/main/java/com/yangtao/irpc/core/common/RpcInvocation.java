@@ -1,6 +1,9 @@
 package com.yangtao.irpc.core.common;
 
 import java.util.Arrays;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @Author: pyhita
@@ -18,9 +21,19 @@ public class RpcInvocation {
 
     private Object[] args;
 
+    public Map<String, Object> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(Map<String, Object> attachments) {
+        this.attachments = attachments;
+    }
+
     private String uuid;
 
     private Object response;
+
+    private Map<String, Object> attachments = new ConcurrentHashMap<>();
 
     public Object getResponse() {
         return response;
@@ -72,5 +85,11 @@ public class RpcInvocation {
                 ", uuid='" + uuid + '\'' +
                 ", response=" + response +
                 '}';
+    }
+
+    public static void main(String[] args) {
+        TreeMap<Integer, int[]> map = new TreeMap<>();
+        Map.Entry<Integer, int[]> entry = map.floorEntry(1);
+
     }
 }
